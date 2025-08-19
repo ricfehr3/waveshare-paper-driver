@@ -4,59 +4,59 @@
 #include <linux/spi/spi.h> 
 #include <linux/of.h> 
 
-static int hello_probe(struct spi_device *spi);
-static void hello_remove(struct spi_device *spi);
-static void hello_shutdown(struct spi_device *spi);
+static int epaper_probe(struct spi_device *spi);
+static void epaper_remove(struct spi_device *spi);
+static void epaper_shutdown(struct spi_device *spi);
 
-static const struct of_device_id hello_of_match[] = {
-    { .compatible = "hellovendor,hellodev" },
+static const struct of_device_id epaper_of_match[] = {
+    { .compatible = "epapervendor,epaperdev" },
     { /*  /(6_6 )\  */}
 };
-MODULE_DEVICE_TABLE(of, hello_of_match);
+MODULE_DEVICE_TABLE(of, epaper_of_match);
 
-static const struct spi_device_id hello_id_table[] = {
-    { "hellodev", 0 },
+static const struct spi_device_id epaper_id_table[] = {
+    { "epaperdev", 0 },
     { /*  /(6_6 )\  */}
 };
 
-MODULE_DEVICE_TABLE(spi, hello_id_table);
+MODULE_DEVICE_TABLE(spi, epaper_id_table);
 
-static struct spi_driver hello_driver =  {
-    .id_table = hello_id_table,
-    .probe = hello_probe,
-    .remove = hello_remove,
-    .shutdown = hello_shutdown,
+static struct spi_driver epaper_driver =  {
+    .id_table = epaper_id_table,
+    .probe = epaper_probe,
+    .remove = epaper_remove,
+    .shutdown = epaper_shutdown,
     .driver = {
-        .name = "hello",
-        .of_match_table = of_match_ptr(hello_of_match),
+        .name = "epaper",
+        .of_match_table = of_match_ptr(epaper_of_match),
     },
 };
 
-static int hello_probe(struct spi_device *spi) {
-    printk("Hello Probe\n"); 
+static int epaper_probe(struct spi_device *spi) {
+    printk("Epaper Probe\n"); 
     return 0;
 }
 
-static void hello_remove(struct spi_device *spi) {
-    pr_info("Hello Remove\n"); 
+static void epaper_remove(struct spi_device *spi) {
+    pr_info("Epaper Remove\n"); 
 }
 
-static void hello_shutdown(struct spi_device *spi) {
-    pr_info("Hello Shutdown\n"); 
+static void epaper_shutdown(struct spi_device *spi) {
+    pr_info("Epaper Shutdown\n"); 
 }
 
-static int __init helloworld_init(void) { 
-    pr_info("Nugget Biscuit!\n"); 
-    return spi_register_driver(&hello_driver);
+static int __init epaper_init(void) { 
+    pr_info("Epaper Init\n"); 
+    return spi_register_driver(&epaper_driver);
 } 
  
-static void __exit helloworld_exit(void) { 
-    pr_info("Nugget and a Biscuit!\n"); 
-    spi_unregister_driver(&hello_driver);
+static void __exit epaper_exit(void) { 
+    pr_info("Epaper Exit\n"); 
+    spi_unregister_driver(&epaper_driver);
 } 
  
-module_init(helloworld_init); 
-module_exit(helloworld_exit); 
+module_init(epaper_init); 
+module_exit(epaper_exit); 
 
 MODULE_AUTHOR("Rickey Fehr <ric@rf3.xyz>"); 
 MODULE_LICENSE("GPL");
