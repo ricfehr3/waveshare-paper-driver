@@ -74,6 +74,17 @@ struct epaper_dev_data {
     struct gpio_desc  *busy;
 };
 
+static void epaper_write_lut(struct epaper_dev_data *m);
+static void epaper_set_cursor(
+		struct epaper_dev_data *m,
+		unsigned char x_start, 
+		unsigned char y_start);
+static void epaper_set_windows(
+		struct epaper_dev_data *m,
+		unsigned char x_start, 
+		unsigned char y_start, 
+		unsigned char x_end, 
+		unsigned char y_end);
 static int epaper_write_data(struct epaper_dev_data *m, u8 data);
 static int epaper_write_cmd(struct epaper_dev_data *m, u8 cmd);
 static int epaper_probe(struct spi_device *spi);
@@ -105,7 +116,7 @@ static struct spi_driver epaper_driver =  {
 };
 
 
-void epaper_write_lut(struct epaper_dev_data *m) {
+static void epaper_write_lut(struct epaper_dev_data *m) {
     //SendCommand(WRITE_LUT_REGISTER);
     epaper_write_cmd(m, SSD1680_WRITE_LUT_REGISTER);
     /* the length of look-up table is 30 bytes */
@@ -115,7 +126,7 @@ void epaper_write_lut(struct epaper_dev_data *m) {
 }
 
 
-void epaper_set_cursor(
+static void epaper_set_cursor(
 		struct epaper_dev_data *m,
 		unsigned char x_start, 
 		unsigned char y_start)
@@ -130,7 +141,7 @@ void epaper_set_cursor(
 }
 
 
-void epaper_set_windows(
+static void epaper_set_windows(
 		struct epaper_dev_data *m,
 		unsigned char x_start, 
 		unsigned char y_start, 
@@ -191,22 +202,6 @@ static int epaper_write_cmd(struct epaper_dev_data *m, u8 cmd)
 	return spi_sync_transfer(m->spi, &t, 1);
 }
 
-static int epaper_read_reg(struct epaper_dev_data *m, u8 cmd, u8* val)
-{
-	int ret = 0;
-
-	ret = epaper_write_cmd(m, cmd);
-	if(ret) return ret;
-
-	gpiod_set_value(m->dc, 1);	
-
-	struct spi_transfer t = {
-		.rx_buf = val,
-		.len    = sizeof(*val),
-	};
-	return spi_sync_transfer(m->spi, &t, 1);
-}
-
 static int epaper_probe(struct spi_device *spi) {
     printk("Epaper Probe\n");
 
@@ -251,7 +246,7 @@ static int epaper_probe(struct spi_device *spi) {
 
     spi->mode = SPI_MODE_0;
     spi->bits_per_word = 8;
-    spi->max_speed_hz = 100000;
+    //spi->max_speed_hz = 100000;
     //spi->max_speed_hz = 20000;
 
     ret = spi_setup(spi);
@@ -266,10 +261,9 @@ static int epaper_probe(struct spi_device *spi) {
     unsigned EPD_WIDTH = 122;
 
     //ret = epaper_write_reg(data, 0x01, 0xA5);
-    msleep(10);
-    u8 val;
     ret = epaper_write_cmd(data, SSD1680_SW_RESET);
-    epaper_busy_wait(data);
+    msleep(10);
+    //epaper_busy_wait(data);
     ret = epaper_write_cmd(data, SSD1680_DRIVER_OUTPUT_CONTROL);
     ret = epaper_write_data(data, 0xF9);
     ret = epaper_write_data(data, 0x00);
@@ -281,6 +275,7 @@ static int epaper_probe(struct spi_device *spi) {
     epaper_set_windows(data, 0, 0, EPD_WIDTH - 1, EPD_HEIGHT - 1);
     epaper_set_cursor(data, 0, 0);
 
+    /*
     ret = epaper_write_cmd(data, SSD1680_DISPLAY_UPDATE_CONTROL_2);
     ret = epaper_write_data(data, 0xB1);	
     ret = epaper_write_cmd(data, 0x20);
@@ -294,16 +289,19 @@ static int epaper_probe(struct spi_device *spi) {
     ret = epaper_write_data(data, 0x91);
     ret = epaper_write_cmd(data, SSD1680_MASTER_ACTIVATION);	
     epaper_busy_wait(data);
+    */
 
 
     // BorderWaveform
     ret = epaper_write_cmd(data, SSD1680_BORDER_WAVEFORM_CONTROL);
     ret = epaper_write_data(data, 0x05);
 
+    /*
     // Display update control
     ret = epaper_write_cmd(data, SSD1680_DISPLAY_UPDATE_CONTROL_1);
     ret = epaper_write_data(data, 0x00);
     ret = epaper_write_data(data, 0x80);
+    */
 
     epaper_write_lut(data);
     epaper_busy_wait(data);
@@ -314,10 +312,9 @@ static int epaper_probe(struct spi_device *spi) {
     ret = epaper_write_cmd(data, SSD1680_WRITE_RAM_BW);
     for (int j = 0; j < h; j++) {
         for (int i = 0; i < w; i++) {
-	    epaper_write_data(data, 0x00);
+	    epaper_write_data(data, 0x81);
         }
     }
-    epaper_busy_wait(data);
 
     //DISPLAY REFRESH
     ret = epaper_write_cmd(data, SSD1680_DISPLAY_UPDATE_CONTROL_2);
