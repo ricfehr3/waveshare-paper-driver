@@ -75,7 +75,7 @@ struct epaper_dev_data {
 };
 
 static int epaper_write_data(struct epaper_dev_data *m, u8 data);
-static int epaper_write_cmd(struct epaper_dev_data *m, enum ssd1680_cmd cmd);
+static int epaper_write_cmd(struct epaper_dev_data *m, u8 cmd);
 static int epaper_probe(struct spi_device *spi);
 static void epaper_remove(struct spi_device *spi);
 static void epaper_shutdown(struct spi_device *spi);
@@ -106,6 +106,7 @@ static struct spi_driver epaper_driver =  {
 
 
 void epaper_write_lut(struct epaper_dev_data *m) {
+    //SendCommand(WRITE_LUT_REGISTER);
     epaper_write_cmd(m, SSD1680_WRITE_LUT_REGISTER);
     /* the length of look-up table is 30 bytes */
     for (int i = 0; i < 30; i++) {
@@ -131,7 +132,7 @@ void epaper_set_cursor(
 
 void epaper_set_windows(
 		struct epaper_dev_data *m,
-		unsigned char x_start,
+		unsigned char x_start, 
 		unsigned char y_start, 
 		unsigned char x_end, 
 		unsigned char y_end)
@@ -179,7 +180,7 @@ static int epaper_write_data(struct epaper_dev_data *m, u8 data)
 	return spi_sync_transfer(m->spi, &t, 1);
 }
 
-static int epaper_write_cmd(struct epaper_dev_data *m, enum ssd1680_cmd cmd) {
+static int epaper_write_cmd(struct epaper_dev_data *m, u8 cmd)
 {
 	gpiod_set_value(m->dc, 0);
 
@@ -190,27 +191,20 @@ static int epaper_write_cmd(struct epaper_dev_data *m, enum ssd1680_cmd cmd) {
 	return spi_sync_transfer(m->spi, &t, 1);
 }
 
-static int set_lut(struct epaper_dev_data *data) {
-    static const unsigned char lut[] =
-    {
-        0x22, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x11, 
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-        0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 
-        0x01, 0x00, 0x00, 0x00, 0x00, 0x00
-    };
+static int epaper_read_reg(struct epaper_dev_data *m, u8 cmd, u8* val)
+{
+	int ret = 0;
 
-    int ret = 0;
+	ret = epaper_write_cmd(m, cmd);
+	if(ret) return ret;
 
-    ret = epaper_write_cmd(data, 32); //WRITE_LUT_REGISTER
-    if(ret != 0) return ret;
+	gpiod_set_value(m->dc, 1);	
 
-    for (int i = 0; i < 30; i++) 
-    {
-        ret = epaper_write_data(data, lut[i]);
-	if(ret != 0) break;
-    }
-
-    return ret;
+	struct spi_transfer t = {
+		.rx_buf = val,
+		.len    = sizeof(*val),
+	};
+	return spi_sync_transfer(m->spi, &t, 1);
 }
 
 static int epaper_probe(struct spi_device *spi) {
@@ -268,8 +262,6 @@ static int epaper_probe(struct spi_device *spi) {
 
     pr_info("Epaper Allocated\n");
 
-    //unsigned EPD_HEIGHT = 122;
-    //unsigned EPD_WIDTH = 250;
     unsigned EPD_HEIGHT = 250;
     unsigned EPD_WIDTH = 122;
 
@@ -289,23 +281,19 @@ static int epaper_probe(struct spi_device *spi) {
     epaper_set_windows(data, 0, 0, EPD_WIDTH - 1, EPD_HEIGHT - 1);
     epaper_set_cursor(data, 0, 0);
 
-    /*
     ret = epaper_write_cmd(data, SSD1680_DISPLAY_UPDATE_CONTROL_2);
-    ret = epaper_write_data(data, 0xB1);
-    ret = epaper_write_cmd(data, SSD1680_MASTER_ACTIVATION);
+    ret = epaper_write_data(data, 0xB1);	
+    ret = epaper_write_cmd(data, 0x20);
     epaper_busy_wait(data);
 
     ret = epaper_write_cmd(data, SSD1680_TEMPERATURE_SENSOR_WRITE_TO);
     ret = epaper_write_data(data, 0x64);
-    ret = epaper_write_data(data, 0x00);
-    */
+    ret = epaper_write_data(data, 0x00);	
 
-    /*
     ret = epaper_write_cmd(data, SSD1680_DISPLAY_UPDATE_CONTROL_2);
     ret = epaper_write_data(data, 0x91);
-    ret = epaper_write_cmd(data, SSD1680_MASTER_ACTIVATION);
+    ret = epaper_write_cmd(data, SSD1680_MASTER_ACTIVATION);	
     epaper_busy_wait(data);
-    */
 
 
     // BorderWaveform
@@ -326,12 +314,7 @@ static int epaper_probe(struct spi_device *spi) {
     ret = epaper_write_cmd(data, SSD1680_WRITE_RAM_BW);
     for (int j = 0; j < h; j++) {
         for (int i = 0; i < w; i++) {
-		if(i ^ j) {
-		    epaper_write_data(data, 0xff);
-		} else {
-		    epaper_write_data(data, 0x00);
-		}
-	    //epaper_write_data(data, 0x00);
+	    epaper_write_data(data, 0x00);
         }
     }
     epaper_busy_wait(data);
@@ -339,8 +322,9 @@ static int epaper_probe(struct spi_device *spi) {
     //DISPLAY REFRESH
     ret = epaper_write_cmd(data, SSD1680_DISPLAY_UPDATE_CONTROL_2);
     ret = epaper_write_data(data, 0xf7);
-    ret = epaper_write_cmd(data, SSD1680_MASTER_ACTIVATION);
+    ret = epaper_write_cmd(data, SSD1680_MASTER_ACTIVATION);	
     epaper_busy_wait(data);
+
 
     pr_info("Epaper All Good\n");
 
