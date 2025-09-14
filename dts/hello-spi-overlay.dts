@@ -1,6 +1,8 @@
 /dts-v1/;
 /plugin/;
 
+#include <dt-bindings/gpio/gpio.h>
+
 &spi0 {
     status = "okay";
 };
@@ -16,9 +18,9 @@
         spi-max-frequency = <4000000>;
 
         /* last cell: 0=ACTIVE_HIGH, 1=ACTIVE_LOW (use numbers to avoid cpp) */
-        res-gpios   = <&gpio 17 1>;
-        busy-gpios  = <&gpio 24 0>;
-        dc-gpios    = <&gpio 25 0>;
+        res-gpios   = <&gpio 17 GPIO_ACTIVE_HIGH>;
+        busy-gpios  = <&gpio 24 GPIO_ACTIVE_HIGH>;
+        dc-gpios    = <&gpio 25 GPIO_ACTIVE_HIGH>;
     };
 };
 

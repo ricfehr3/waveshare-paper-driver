@@ -69,6 +69,7 @@ void epaper_set_cursor(
 {
     epaper_write_cmd(m, 0x4E); // SET_RAM_X_ADDRESS_COUNTER
     epaper_write_data(m, x_start & 0xFF);
+    //epaper_write_data(m, (x_start >> 3) & 0xFF); ????
 
     epaper_write_cmd(m, 0x4F); // SET_RAM_Y_ADDRESS_COUNTER
     epaper_write_data(m, y_start & 0xFF);
@@ -110,7 +111,7 @@ static int wait_for_busy_low(struct gpio_desc *desc, unsigned int timeout_ms)
 }
 
 static void epaper_busy_wait(struct epaper_dev_data *m) {
-	int ret = wait_for_busy_low(m->busy, 3000);
+	int ret = wait_for_busy_low(m->busy, 5000);
 	pr_info("Epaper busy wait %d\n", ret);
 }
 
@@ -206,11 +207,11 @@ static int epaper_probe(struct spi_device *spi) {
 	return dev_err_probe(&spi->dev, PTR_ERR(data->busy), "Failed to get BUSY GPIO\n");
 
     // TODO: Reset is active low, make sure this makes sense
-    gpiod_set_value(data->res, 0);
-    msleep(wait);
     gpiod_set_value(data->res, 1);
     msleep(wait);
     gpiod_set_value(data->res, 0);
+    msleep(wait);
+    gpiod_set_value(data->res, 1);
     msleep(wait);
 
 
@@ -231,8 +232,10 @@ static int epaper_probe(struct spi_device *spi) {
 
     pr_info("Epaper Allocated\n");
 
-    unsigned EPD_HEIGHT = 122;
-    unsigned EPD_WIDTH = 250;
+    //unsigned EPD_HEIGHT = 122;
+    //unsigned EPD_WIDTH = 250;
+    unsigned EPD_HEIGHT = 250;
+    unsigned EPD_WIDTH = 122;
 
     //ret = epaper_write_reg(data, 0x01, 0xA5);
     msleep(10);
@@ -288,8 +291,12 @@ static int epaper_probe(struct spi_device *spi) {
     ret = epaper_write_cmd(data, 0x24);
     for (int j = 0; j < h; j++) {
         for (int i = 0; i < w; i++) {
-	    //epaper_write_data(data, 0xff);
-	    epaper_write_data(data, 0x00);
+		if(i ^ j) {
+		    epaper_write_data(data, 0xff);
+		} else {
+		    epaper_write_data(data, 0x00);
+		}
+	    //epaper_write_data(data, 0x00);
         }
     }
     epaper_busy_wait(data);
